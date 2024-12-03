@@ -27,19 +27,37 @@ func main() {
 		var command = parts[0]
 		var args = parts[1:]
 
-		// Exit the shell if the user types "exit"
-		if input == "exit" {
+		switch command {
+		case "exit":
 			os.Exit(0)
-		}
 
-		// Prepare the Command to be run, capturing the input
-		cmd := exec.Command(command, args...)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
+		case "cd":
+			var path string
+			var err error
 
-		err := cmd.Run()
-		if err != nil {
-			fmt.Println(err)
+			if len(args) > 0 {
+				path = args[0]
+			} else {
+				path, err = os.UserHomeDir()
+			}
+			err = os.Chdir(path)
+			if err != nil {
+				fmt.Printf("%v\n", err)
+			}
+
+		case "pwd":
+			dir, _ := os.Getwd()
+			fmt.Println(dir)
+
+		default:
+			cmd := exec.Command(command, args...)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+
+			err := cmd.Run()
+			if err != nil {
+				fmt.Println(err)
+			}
 		}
 	}
 }
