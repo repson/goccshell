@@ -9,6 +9,15 @@ import (
 	"strings"
 )
 
+func pwd(w *io.PipeWriter) {
+	defer w.Close()
+	dir, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Fprintln(w, dir)
+}
+
 func main() {
 	for {
 		// Display the prompt
@@ -72,23 +81,22 @@ func main() {
 					cmd.Stdin = output
 				}
 				output, _ = cmd.StdoutPipe()
-
 			}
+		}
 
-			if len(cmds) > 0 {
-				cmds[len(cmds)-1].Stdout = os.Stdout
-			}
+		if len(cmds) > 0 {
+			cmds[len(cmds)-1].Stdout = os.Stdout
+		}
 
-			for _, cmd := range cmds {
-				cmd.Start()
-			}
+		for _, cmd := range cmds {
+			cmd.Start()
+		}
 
-			for _, cmd := range cmds {
-				err := cmd.Wait()
-				if err != nil {
-					if cmd.ProcessState.ExitCode() == -1 {
-						fmt.Printf("Command not found: %s\n", cmd.Path)
-					}
+		for _, cmd := range cmds {
+			err := cmd.Wait()
+			if err != nil {
+				if cmd.ProcessState.ExitCode() == -1 {
+					fmt.Printf("Command not found: %s\n", cmd.Path)
 				}
 			}
 		}
