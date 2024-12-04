@@ -6,7 +6,9 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"os/signal"
 	"strings"
+	"syscall"
 )
 
 func pwd(w *io.PipeWriter) {
@@ -18,7 +20,32 @@ func pwd(w *io.PipeWriter) {
 	fmt.Fprintln(w, dir)
 }
 
+func notifyCmds(cmds, []*exec.Cmd, s os.Signal) {
+	for _, cmd := range cmds {
+		cmd.Process.Signal(s)
+	}
+}
+
 func main() {
+	signalChannel := make(chan os.Signal, 1)
+	signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM)
+
+	var cmds []*exec.Cmd
+	ctx, cancel := context.WithCancel(context.Background())
+
+	go func(ctx context.Context) {
+		select {
+		case sig := <-signalChannel:
+			switch sig {
+			case os.Interrupt, syscall.SIGTERM:
+				notifyCmds(cmds, sig)
+			}
+		case <-ctx.Done():
+			close(signalChannel)
+			return
+		}
+	}(ctx)
+
 	for {
 		// Display the prompt
 		fmt.Print("ccsh> ")
@@ -39,8 +66,9 @@ func main() {
 		var output io.ReadCloser
 
 		for _, command := range commands {
-			command = strings.TrimSpace(command)
-			parts := strings.Fields(command)
+			commandLine = strings.TrimSpace(commandLine)
+
+			parts := strings.Fields(commandLine)
 			var command = parts[0]
 			var args = parts[1:]
 
@@ -95,8 +123,10 @@ func main() {
 		for _, cmd := range cmds {
 			err := cmd.Wait()
 			if err != nil {
-				if cmd.ProcessState.ExitCode() == -1 {
-					fmt.Printf("Command not found: %s\n", cmd.Path)
+				if err.Error() != "signal: interrupt" {
+					if cmd.ProcessState.ExitCode() == -1 {
+						fmt.Printf("Command not found: %s\n", cmd.Path)
+					}
 				}
 			}
 		}
