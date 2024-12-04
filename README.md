@@ -1,7 +1,7 @@
 # goccshell
-Go solution to Coding Challenges Shell
+Go solution to Coding Challenges Shell.
 
-Main features:
+# Main features
 
 * Handling multiple commands
 * Exiting from the shell
@@ -12,9 +12,8 @@ Main features:
 * Handling signals
 * Command history
 
-To Do:
+# To-Do:
 
-Taking It Further And Wrapping Up
 This course has demonstrated a simple implementation of the core of a shell in Go.
 
 There is plenty of scope to take this project further:
