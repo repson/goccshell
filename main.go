@@ -40,7 +40,7 @@ func main() {
 
 		for _, command := range commands {
 			command = strings.TrimSpace(command)
-			parts := strings.Fields(input)
+			parts := strings.Fields(command)
 			var command = parts[0]
 			var args = parts[1:]
 
