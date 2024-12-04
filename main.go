@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -11,16 +12,7 @@ import (
 	"syscall"
 )
 
-func pwd(w *io.PipeWriter) {
-	defer w.Close()
-	dir, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-	fmt.Fprintln(w, dir)
-}
-
-func notifyCmds(cmds, []*exec.Cmd, s os.Signal) {
+func notifyCmds(cmds []*exec.Cmd, s os.Signal) {
 	for _, cmd := range cmds {
 		cmd.Process.Signal(s)
 	}
@@ -46,6 +38,8 @@ func main() {
 		}
 	}(ctx)
 
+	history := NewHistory()
+
 	for {
 		// Display the prompt
 		fmt.Print("ccsh> ")
@@ -65,8 +59,9 @@ func main() {
 		var cmds []*exec.Cmd
 		var output io.ReadCloser
 
-		for _, command := range commands {
+		for _, commandLine := range commands {
 			commandLine = strings.TrimSpace(commandLine)
+			history.AddCommand(commandLine)
 
 			parts := strings.Fields(commandLine)
 			var command = parts[0]
@@ -74,6 +69,8 @@ func main() {
 
 			switch command {
 			case "exit":
+				cancel()
+				history.file.Close()
 				os.Exit(0)
 
 			case "cd":
@@ -90,9 +87,14 @@ func main() {
 					fmt.Printf("%v\n", err)
 				}
 
+			case "history":
+				for i, hc := range history.commands {
+					fmt.Printf("%d: %s\n", i, hc)
+				}
+
 			case "pwd":
 				pr, pw := io.Pipe()
-				go pwd(pw)
+				go Pwd(pw)
 				if len(commands) == 1 {
 					io.Copy(os.Stdout, pr)
 				} else {
@@ -101,6 +103,7 @@ func main() {
 
 			default:
 				cmd := exec.Command(command, args...)
+				cmd.Stdin = os.Stdin
 				cmd.Stderr = os.Stderr
 
 				cmds = append(cmds, cmd)
@@ -130,5 +133,6 @@ func main() {
 				}
 			}
 		}
+		cmds = nil
 	}
 }
