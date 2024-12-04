@@ -8,7 +8,7 @@ Go solution to Coding Challenges Shell.
 * Handling non-existent commands
 * Commands with arguments
 * Builtin commands
-* Supoort pipes
+* Support pipes
 * Handling signals
 * Command history
 
